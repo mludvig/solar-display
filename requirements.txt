@@ -1,0 +1,4 @@
+requests
+toml
+Pillow
+adafruit-circuitpython-rgb-display
