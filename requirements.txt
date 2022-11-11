@@ -1,4 +1,4 @@
 aiohttp
-toml
+pyyaml
 Pillow
 adafruit-circuitpython-rgb-display

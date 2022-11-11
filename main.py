@@ -4,7 +4,7 @@ import io
 import time
 import asyncio
 
-import toml
+import yaml
 import aiohttp
 import digitalio
 import board
@@ -128,7 +128,7 @@ def build_dashboard(dashboard, width, height):
                 "id": item[0],
                 "url": item[1]["url"]
             })
-    data = asyncio.run(fetch_urls(urls, config['grafana']['token']))
+    data = asyncio.run(fetch_urls(urls, config['general']['grafana_token']))
 
     dashboard_image = Image.new("RGB", (width, height), "#FFF")
     for item in dashboard.items():
@@ -144,10 +144,9 @@ def build_dashboard(dashboard, width, height):
  
 if __name__ == "__main__":
     print(f"Running on: {board.board_id}")
-    config = toml.load(open("config.toml"))
-    #print(f"{config=}")
+    config = yaml.safe_load(open("config.yaml"))
 
-    disp = Display(rotation=270)
+    disp = Display(rotation=config["general"]["rotation"])
     disp.display_image(build_wait_screen(disp.d_width, disp.d_height))
 
     print("Loading dashboards...")
