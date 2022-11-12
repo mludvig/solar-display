@@ -69,7 +69,7 @@ class XPT2046:
 
     def irq_press(self):
         """Send X,Y values to passed interrupt handler."""
-        if irq_handler is None:
+        if self.irq_handler is None:
             return
         if not self.irq_locked:
             self.irq_locked = True  # Lock Interrupt

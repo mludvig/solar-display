@@ -3,15 +3,20 @@
 import io
 import time
 import asyncio
+import queue
 
+import board
 import yaml
 import aiohttp
-import digitalio
-import board
 
 from PIL import Image, ImageDraw, ImageFont
 
 from display import Display
+from touch import TouchScreen
+
+BUZZER_PIN=2
+
+touch_queue = queue.Queue(1)
 
 async def fetch_one_url(session, url, url_id, headers):
     print(f"{url=}")
@@ -75,18 +80,18 @@ def build_wait_screen(width, height):
 class DashboardManager:
     def __init__(self, dashboards, disp):
         self.dashboards = dashboards
+        self.current_dashboard = None
         self.disp = disp
 
     def find_dashboard(self, dash_name):
-        for dashboard in self.dashboards:
-            if dashboard["id"] == dash_name:
-                return dashboard
-        raise ValueError(f"Dashboard not found: {dash_name}")
+        if dash_name not in self.dashboards:
+            raise ValueError(f"Dashboard not found: {dash_name}")
+        return self.dashboards[dash_name]
 
     def show_dashboard(self, dash_name):
-        dashboard = self.find_dashboard(dash_name)
+        self.current_dashboard = self.find_dashboard(dash_name)
         urls = []
-        for tile in dashboard["tiles"]:
+        for tile in self.current_dashboard["tiles"]:
             urls.append({
                 "id": tile["id"],
                 "url": tile["url"]
@@ -94,7 +99,7 @@ class DashboardManager:
         data = asyncio.run(fetch_urls(urls, config['general']['grafana_token']))
 
         dashboard_image = Image.new("RGB", (self.disp.d_width, self.disp.d_height), "#FFF")
-        for tile in dashboard["tiles"]:
+        for tile in self.current_dashboard["tiles"]:
             try:
                 image = Image.open(io.BytesIO(data[tile["id"]]["content"]))
                 dashboard_image.paste(image, tile.get("placement", (0,0)))
@@ -103,6 +108,17 @@ class DashboardManager:
                 # Never mind, move on...
 
         self.disp.display_image(dashboard_image)
+        return self.current_dashboard.get("touch_areas", None)
+
+    def resolve_touch(self, touch_coords):
+        if self.current_dashboard is None or "touch_areas" not in self.current_dashboard:
+            return None
+        for area in self.current_dashboard["touch_areas"]:
+            box = area["box"]
+            if box[0] <= touch_coords[0] <= box[2] and box[1] <= touch_coords[1] <= box[3]:
+                return area["id"]
+        print(f"WARNING: Touch ({touch_coords[0]},{touch_coords[1]}) does not belong to any defined area!")
+        return None
 
 if __name__ == "__main__":
     print(f"Running on: {board.board_id}")
@@ -119,6 +135,16 @@ if __name__ == "__main__":
     disp.display_image(build_wait_screen(disp.d_width, disp.d_height))
     dash_manager = DashboardManager(config["dashboards"], disp)
 
+    touch_screen = TouchScreen(touch_queue, BUZZER_PIN, config["general"]["rotation"])
+
+    dash_name = "main"
     while True:
-        dash_manager.show_dashboard("main")
-        time.sleep(5)
+        touch_areas = dash_manager.show_dashboard(dash_name)
+        try:
+            touch_coords = touch_queue.get(timeout=5)
+        except queue.Empty:
+            continue
+        new_dash = dash_manager.resolve_touch(touch_coords)
+        print(f"Switching to dashboard: {new_dash}")
+        if new_dash is not None:
+            dash_name = new_dash
