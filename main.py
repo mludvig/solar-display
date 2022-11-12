@@ -120,32 +120,38 @@ def build_wait_screen(width, height):
     draw.text((10, 10), "Please wait ...", font=font, fill="#FF0")
     return dashboard_image
 
-def build_dashboard(dashboards, dash_name, width, height):
-    for dashboard in dashboards:
-        if dashboard["id"] == dash_name:
-            break
-    if dashboard["id"] != dash_name:
+class DashboardManager:
+    def __init__(self, dashboards, disp):
+        self.dashboards = dashboards
+        self.disp = disp
+
+    def find_dashboard(self, dash_name):
+        for dashboard in self.dashboards:
+            if dashboard["id"] == dash_name:
+                return dashboard
         raise ValueError(f"Dashboard not found: {dash_name}")
 
-    urls = []
-    for tile in dashboard["tiles"]:
-        urls.append({
-            "id": tile["id"],
-            "url": tile["url"]
-        })
-    data = asyncio.run(fetch_urls(urls, config['general']['grafana_token']))
+    def show_dashboard(self, dash_name):
+        dashboard = self.find_dashboard(dash_name)
+        urls = []
+        for tile in dashboard["tiles"]:
+            urls.append({
+                "id": tile["id"],
+                "url": tile["url"]
+            })
+        data = asyncio.run(fetch_urls(urls, config['general']['grafana_token']))
 
-    dashboard_image = Image.new("RGB", (width, height), "#FFF")
-    for tile in dashboard["tiles"]:
-        try:
-            image = Image.open(io.BytesIO(data[tile["id"]]["content"]))
-            dashboard_image.paste(image, tile.get("placement", (0,0)))
-        except Exception as ex:
-            print(f"ERROR: {ex}")
-            # Never mind, move on...
+        dashboard_image = Image.new("RGB", (self.disp.d_width, self.disp.d_height), "#FFF")
+        for tile in dashboard["tiles"]:
+            try:
+                image = Image.open(io.BytesIO(data[tile["id"]]["content"]))
+                dashboard_image.paste(image, tile.get("placement", (0,0)))
+            except Exception as ex:
+                print(f"ERROR: {ex}")
+                # Never mind, move on...
 
-    return dashboard_image
- 
+        self.disp.display_image(dashboard_image)
+
 if __name__ == "__main__":
     print(f"Running on: {board.board_id}")
 
@@ -159,8 +165,8 @@ if __name__ == "__main__":
 
     disp = Display(rotation=config["general"]["rotation"])
     disp.display_image(build_wait_screen(disp.d_width, disp.d_height))
+    dash_manager = DashboardManager(config["dashboards"], disp)
 
     while True:
-        image = build_dashboard(config["dashboards"], "main", disp.d_width, disp.d_height)
-        disp.display_image(image)
+        dash_manager.show_dashboard("main")
         time.sleep(5)
