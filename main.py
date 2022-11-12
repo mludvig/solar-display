@@ -120,53 +120,47 @@ def build_wait_screen(width, height):
     draw.text((10, 10), "Please wait ...", font=font, fill="#FF0")
     return dashboard_image
 
-def build_dashboard(dashboard, width, height):
+def build_dashboard(dashboards, dash_name, width, height):
+    for dashboard in dashboards:
+        if dashboard["id"] == dash_name:
+            break
+    if dashboard["id"] != dash_name:
+        raise ValueError(f"Dashboard not found: {dash_name}")
+
     urls = []
-    for item in dashboard.items():
-        if type(item[1]) == dict and "url" in item[1]:
-            urls.append({
-                "id": item[0],
-                "url": item[1]["url"]
-            })
+    for tile in dashboard["tiles"]:
+        urls.append({
+            "id": tile["id"],
+            "url": tile["url"]
+        })
     data = asyncio.run(fetch_urls(urls, config['general']['grafana_token']))
 
     dashboard_image = Image.new("RGB", (width, height), "#FFF")
-    for item in dashboard.items():
-        if type(item[1]) == dict:
-            try:
-                image = Image.open(io.BytesIO(data[item[0]]["content"]))
-                dashboard_image.paste(image, item[1].get("placement", (0,0)))
-            except Exception as ex:
-                print(f"ERROR: {ex}")
-                # Never mind, move on...
+    for tile in dashboard["tiles"]:
+        try:
+            image = Image.open(io.BytesIO(data[tile["id"]]["content"]))
+            dashboard_image.paste(image, tile.get("placement", (0,0)))
+        except Exception as ex:
+            print(f"ERROR: {ex}")
+            # Never mind, move on...
 
     return dashboard_image
  
 if __name__ == "__main__":
     print(f"Running on: {board.board_id}")
-    config = yaml.safe_load(open("config.yaml"))
+
+    with open("config.yaml") as f:
+        # First we only need the "defaults" section
+        config_yaml = f.read()
+        config = yaml.safe_load(config_yaml)
+        # Now substitute (aka "format()") the defaults to the config.yaml
+        config_yaml = config_yaml.format(**config["defaults"])
+        config = yaml.safe_load(config_yaml)
 
     disp = Display(rotation=config["general"]["rotation"])
     disp.display_image(build_wait_screen(disp.d_width, disp.d_height))
 
-    print("Loading dashboards...")
-    dashboards = {}
-    for dashboard_name in filter(lambda x: x.startswith("dashboard-"), config.keys()):
-        dashboard_name = dashboard_name.replace("dashboard-", "")
-        print(f"* {dashboard_name}")
-        dashboards[dashboard_name] = {}
-        for item in config[f"dashboard-{dashboard_name}"].items():
-            dashboards[dashboard_name][item[0]] = item[1]
-            if "url" in dashboards[dashboard_name][item[0]]:
-                dashboards[dashboard_name][item[0]]["url"] = item[1]["url"].format(**config["url_defaults"])
-
-    #print(json.dumps(dashboards, indent=2))
-
     while True:
-        image = build_dashboard(dashboards["main"], disp.d_width, disp.d_height)
+        image = build_dashboard(config["dashboards"], "main", disp.d_width, disp.d_height)
         disp.display_image(image)
-        time.sleep(10)
-
-        #image = build_dashboard(dashboards["impexp"], disp.d_width, disp.d_height)
-        #disp.display_image(image)
-        #time.sleep(10)
+        time.sleep(5)
