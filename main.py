@@ -78,15 +78,15 @@ def build_wait_screen(width, height):
     return dashboard_image
 
 class DashboardManager:
-    def __init__(self, dashboards, disp):
-        self.dashboards = dashboards
+    def __init__(self, config, disp):
+        self.config = config
         self.current_dashboard = None
         self.disp = disp
 
     def find_dashboard(self, dash_name):
-        if dash_name not in self.dashboards:
+        if dash_name not in self.config["dashboards"]:
             raise ValueError(f"Dashboard not found: {dash_name}")
-        return self.dashboards[dash_name]
+        return self.config["dashboards"][dash_name]
 
     def show_dashboard(self, dash_name):
         self.current_dashboard = self.find_dashboard(dash_name)
@@ -96,7 +96,7 @@ class DashboardManager:
                 "id": tile["id"],
                 "url": tile["url"]
             })
-        data = asyncio.run(fetch_urls(urls, config['general']['grafana_token']))
+        data = asyncio.run(fetch_urls(urls, self.config['general']['grafana_token']))
 
         dashboard_image = Image.new("RGB", (self.disp.d_width, self.disp.d_height), "#FFF")
         for tile in self.current_dashboard["tiles"]:
@@ -120,7 +120,7 @@ class DashboardManager:
         print(f"WARNING: Touch ({touch_coords[0]},{touch_coords[1]}) does not belong to any defined area!")
         return None
 
-if __name__ == "__main__":
+def main():
     print(f"Running on: {board.board_id}")
 
     with open("config.yaml") as f:
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     disp = Display(rotation=config["general"]["rotation"])
     disp.display_image(build_wait_screen(disp.d_width, disp.d_height))
-    dash_manager = DashboardManager(config["dashboards"], disp)
+    dash_manager = DashboardManager(config, disp)
 
     touch_screen = TouchScreen(touch_queue, BUZZER_PIN, config["general"]["rotation"])
 
@@ -148,3 +148,4 @@ if __name__ == "__main__":
         print(f"Switching to dashboard: {new_dash}")
         if new_dash is not None:
             dash_name = new_dash
+

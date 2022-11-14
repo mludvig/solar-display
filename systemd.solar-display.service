@@ -1,0 +1,22 @@
+## systemd unit file
+# Install:
+# - sudo cp systemd.solar-display.service /etc/systemd/system/solar-display.service
+# - Update the path in "ExecStart" and "WorkingDirectory" below
+# - sudo chmod 644 /etc/systemd/system/solar-display.service
+# - sudo systemctl daemon-reload
+# - sudo systemctl enable --now solar-display.service
+
+[Unit]
+Description=Solar PV dashboard display
+
+[Service]
+Type=simple
+NotifyAccess=all
+WorkingDirectory=/home/pi/solar-display
+ExecStart=/home/pi/solar-display/solar-display
+Restart=on-failure
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target
