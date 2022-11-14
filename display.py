@@ -12,7 +12,7 @@ class Display:
         cs_pin = digitalio.DigitalInOut(board.CE0)
         dc_pin = digitalio.DigitalInOut(board.D25)
         reset_pin = digitalio.DigitalInOut(board.D24)
-        backlight_pin = digitalio.DigitalInOut(board.D23)
+        backlight_pin = digitalio.DigitalInOut(board.D13)
 
         # Turn on the Backlight
         backlight_pin.switch_to_output()
