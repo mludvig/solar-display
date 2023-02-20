@@ -1,0 +1,92 @@
+general:
+  rotation: 270
+  grafana_token: glsa_Generete_Token_In_Grafana!
+
+defaults:
+  base_url: http://grafana.home:3000/render/d-solo/S2e8eyV4z/solar-power?orgId=1&from=now/d&to=now/d&tz=Pacific%2FAuckland&theme=light
+  current_size: width=100&height=80
+  full_width: 320
+  full_height: 240
+  half_width: 160
+  half_height: 120
+  touch_full: [0, 0, 320, 240]
+  touch_left_half: [0, 0, 160, 240]
+  touch_right_half: [160, 0, 320, 240]
+
+dashboards:
+  main:
+    label: Main dashboard
+
+    tiles:
+      - id: pv_output
+        label: PV Output
+        placement: [2, 0]
+        url: '{base_url}&panelId=2&{current_size}'
+
+      - id: grid_input
+        placement: [111, 0]
+        label: Grid Input
+        url: '{base_url}&panelId=3&{current_size}'
+
+      - id: house_load
+        placement: [220, 0]
+        label: House Load
+        url: '{base_url}&panelId=4&{current_size}'
+
+      - id: import_export
+        label: Import/Export
+        placement: [0, 80]
+        url: '{base_url}&panelId=42&width={full_width}&height=160'
+
+    touch_areas:
+      - id: daily_overview
+        box: {touch_full}
+
+  daily_overview:
+    label: Daily overview
+
+    tiles:
+      - id: house_consumption
+        url: '{base_url}&panelId=29&width={full_width}&height={half_height}'
+        placement: [0, 0]
+
+      - id: solar_utilisation
+        url: '{base_url}&panelId=28&width={full_width}&height={half_height}'
+        placement: [0, {half_height}]
+
+    touch_areas:
+      - id: solar_generation
+        box: {touch_full}
+
+  solar_generation:
+    label: Solar Generation
+
+    tiles:
+      - id: solar_generation
+        url: '{base_url}&panelId=39&width={full_width}&height={full_height}'
+
+    touch_areas:
+      - id: house_load
+        box: {touch_full}
+
+  house_load:
+    label: House Load
+
+    tiles:
+      - id: house_load
+        url: '{base_url}&panelId=45&width={full_width}&height={full_height}'
+
+    touch_areas:
+      - id: import_export
+        box: {touch_full}
+
+  import_export:
+    label: Import / Export
+
+    tiles:
+      - id: import_export
+        url: '{base_url}&panelId=42&width={full_width}&height={full_height}'
+
+    touch_areas:
+      - id: main
+        box: {touch_full}
